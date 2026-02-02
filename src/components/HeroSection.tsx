@@ -1,5 +1,8 @@
-import { MapPin, Users, Ticket, FileQuestion, Trophy, Calendar, Wifi } from 'lucide-react';
+import { Users, Ticket, FileQuestion, Trophy, Calendar, Wifi } from 'lucide-react';
 import { Button } from './ui/button';
+import nxtgensecLogo from '@/assets/nxtgensec-logo.png';
+
+const REGISTER_LINK = "https://forms.gle/cJiq3hvQQCBwmVZN8";
 
 const HeroSection = () => {
   const highlights = [
@@ -22,6 +25,15 @@ const HeroSection = () => {
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-5xl mx-auto text-center">
+          {/* Logo */}
+          <div className="flex justify-center mb-6 animate-slide-in">
+            <img 
+              src={nxtgensecLogo} 
+              alt="NxtGenSec Logo" 
+              className="w-24 h-24 md:w-32 md:h-32 object-contain animate-float"
+            />
+          </div>
+
           {/* Online Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/30 mb-6 animate-slide-in">
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
@@ -80,14 +92,18 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-in" style={{ animationDelay: '0.8s' }}>
-            <Button variant="hero" size="xl">
-              <Trophy className="w-5 h-5" />
-              Register Your Team
-            </Button>
-            <Button variant="heroOutline" size="xl">
-              <Calendar className="w-5 h-5" />
-              View Challenges
-            </Button>
+            <a href={REGISTER_LINK} target="_blank" rel="noopener noreferrer">
+              <Button variant="hero" size="xl">
+                <Trophy className="w-5 h-5" />
+                Register Your Team
+              </Button>
+            </a>
+            <a href="#challenges">
+              <Button variant="heroOutline" size="xl">
+                <Calendar className="w-5 h-5" />
+                View Challenges
+              </Button>
+            </a>
           </div>
         </div>
       </div>

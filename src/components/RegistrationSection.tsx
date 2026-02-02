@@ -1,6 +1,8 @@
 import { ArrowRight, CheckCircle, Shield } from 'lucide-react';
 import { Button } from './ui/button';
 
+const REGISTER_LINK = "https://forms.gle/cJiq3hvQQCBwmVZN8";
+
 const RegistrationSection = () => {
   const steps = [
     'Form a team (solo or duo)',
@@ -50,10 +52,12 @@ const RegistrationSection = () => {
 
             {/* CTA */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button variant="hero" size="xl" className="w-full sm:w-auto">
-                Register Now
-                <ArrowRight className="w-5 h-5" />
-              </Button>
+              <a href={REGISTER_LINK} target="_blank" rel="noopener noreferrer">
+                <Button variant="hero" size="xl" className="w-full sm:w-auto">
+                  Register Now
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </a>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Shield className="w-4 h-4" />
                 <span className="font-inter text-sm">Entry Fee: ₹50 per team</span>
