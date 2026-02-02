@@ -25,14 +25,6 @@ const HeroSection = () => {
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-5xl mx-auto text-center">
-          {/* Logo */}
-          <div className="flex justify-center mb-6 animate-slide-in">
-            <img 
-              src={nxtgensecLogo} 
-              alt="NxtGenSec Logo" 
-              className="w-24 h-24 md:w-32 md:h-32 object-contain animate-float"
-            />
-          </div>
 
           {/* Online Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/30 mb-6 animate-slide-in">
