@@ -40,12 +40,12 @@ const WhatsAppIcon = () => (
 
 const Footer = () => {
   const socialLinks = [
-    { icon: InstagramIcon, href: '#', label: 'Instagram' },
+    { icon: InstagramIcon, href: 'https://www.instagram.com/nxtgensec/', label: 'Instagram' },
     { icon: XIcon, href: 'https://x.com/NxtgenSec', label: 'X (Twitter)' },
-    { icon: YouTubeIcon, href: '#', label: 'YouTube' },
-    { icon: LinkedInIcon, href: '#', label: 'LinkedIn' },
-    { icon: TelegramIcon, href: '#', label: 'Telegram' },
-    { icon: WhatsAppIcon, href: '#', label: 'WhatsApp Community' },
+    { icon: YouTubeIcon, href: 'https://www.youtube.com/@NxtGenSec', label: 'YouTube' },
+    { icon: LinkedInIcon, href: 'https://www.linkedin.com/company/nxtgensec', label: 'LinkedIn' },
+    { icon: TelegramIcon, href: 'https://t.me/nxtgensec', label: 'Telegram' },
+    { icon: WhatsAppIcon, href: 'https://chat.whatsapp.com/ILzK1asY0ISK4XjpVShM6l', label: 'WhatsApp Community' },
   ];
 
   return (
