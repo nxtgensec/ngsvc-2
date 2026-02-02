@@ -41,7 +41,7 @@ const WhatsAppIcon = () => (
 const Footer = () => {
   const socialLinks = [
     { icon: InstagramIcon, href: '#', label: 'Instagram' },
-    { icon: XIcon, href: '#', label: 'X (Twitter)' },
+    { icon: XIcon, href: 'https://x.com/NxtgenSec', label: 'X (Twitter)' },
     { icon: YouTubeIcon, href: '#', label: 'YouTube' },
     { icon: LinkedInIcon, href: '#', label: 'LinkedIn' },
     { icon: TelegramIcon, href: '#', label: 'Telegram' },
