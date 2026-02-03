@@ -1,10 +1,65 @@
+import { useEffect, useState } from 'react';
 import { Users, Ticket, FileQuestion, Trophy, Calendar, Wifi } from 'lucide-react';
 import { Button } from './ui/button';
 import nxtgensecLogo from '@/assets/nxtgensec-logo.png';
 
 const REGISTER_LINK = "https://forms.gle/cJiq3hvQQCBwmVZN8";
 
+// Hackathon start: Feb 20, 2026 at 00:00:00 IST (UTC+5:30)
+const HACKATHON_START = new Date('2026-02-20T00:00:00+05:30').getTime();
+
+interface TimeLeft {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+}
+
+const calculateTimeLeft = (): TimeLeft => {
+  const now = new Date().getTime();
+  const difference = HACKATHON_START - now;
+
+  if (difference <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
+
+  return {
+    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+    minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+    seconds: Math.floor((difference % (1000 * 60)) / 1000),
+  };
+};
+
+const CountdownBox = ({ value, label }: { value: number; label: string }) => (
+  <div className="flex flex-col items-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-xl bg-card border border-primary/40 flex items-center justify-center glow-primary">
+      <span className="font-orbitron text-2xl sm:text-3xl md:text-4xl font-bold text-primary">
+        {value.toString().padStart(2, '0')}
+      </span>
+    </div>
+    <span className="font-inter text-xs md:text-sm text-muted-foreground mt-2 uppercase tracking-wider">{label}</span>
+  </div>
+);
+
 const HeroSection = () => {
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft());
+  const [isHackathonStarted, setIsHackathonStarted] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const newTimeLeft = calculateTimeLeft();
+      setTimeLeft(newTimeLeft);
+
+      if (newTimeLeft.days === 0 && newTimeLeft.hours === 0 && newTimeLeft.minutes === 0 && newTimeLeft.seconds === 0) {
+        setIsHackathonStarted(true);
+        clearInterval(timer);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   const highlights = [
     { icon: Wifi, text: 'Online', color: 'text-secondary' },
     { icon: Users, text: 'Max 2 Members', color: 'text-primary' },
@@ -47,6 +102,24 @@ const HeroSection = () => {
           <p className="font-inter text-lg md:text-xl text-muted-foreground italic mb-8 animate-slide-in" style={{ animationDelay: '0.4s' }}>
             "Code the vibe. Solve real problems."
           </p>
+
+          {/* Countdown Timer */}
+          <div className="mb-10 animate-slide-in" style={{ animationDelay: '0.45s' }}>
+            <p className="font-inter text-sm text-muted-foreground mb-4 uppercase tracking-widest">
+              {isHackathonStarted ? '🎉 Hackathon has started!' : 'Hackathon Begins In'}
+            </p>
+            {!isHackathonStarted && (
+              <div className="flex items-center justify-center gap-3 sm:gap-4 md:gap-6">
+                <CountdownBox value={timeLeft.days} label="Days" />
+                <span className="font-orbitron text-2xl md:text-3xl text-primary/50 mt-[-24px]">:</span>
+                <CountdownBox value={timeLeft.hours} label="Hours" />
+                <span className="font-orbitron text-2xl md:text-3xl text-primary/50 mt-[-24px]">:</span>
+                <CountdownBox value={timeLeft.minutes} label="Mins" />
+                <span className="font-orbitron text-2xl md:text-3xl text-primary/50 mt-[-24px]">:</span>
+                <CountdownBox value={timeLeft.seconds} label="Secs" />
+              </div>
+            )}
+          </div>
 
           {/* Highlights Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10 animate-slide-in" style={{ animationDelay: '0.5s' }}>
