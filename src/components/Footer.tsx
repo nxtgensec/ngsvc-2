@@ -98,7 +98,7 @@ const Footer = () => {
               <li className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-primary" />
                 <a href="https://www.nxtgensec.org" target="_blank" rel="noopener noreferrer" className="font-inter text-sm text-muted-foreground hover:text-primary transition-colors duration-300 flex items-center gap-1">
-                  https://nxtgensec.org
+                  nxtgensec.org
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </li>
