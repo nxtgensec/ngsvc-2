@@ -1,45 +1,56 @@
 import { useEffect, useState } from 'react';
 import { Users } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const VisitorCounter = () => {
-  const [visitorCount, setVisitorCount] = useState<number>(0);
+  const [visitorCount, setVisitorCount] = useState<number>(4);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Generate a unique visitor ID based on browser fingerprint
-    const getVisitorId = () => {
-      const stored = localStorage.getItem('vibecoding_visitor_id');
-      if (stored) return stored;
-      
-      const id = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem('vibecoding_visitor_id', id);
-      return id;
-    };
+    // Track this visitor and get count
+    const trackAndFetch = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('track-visitor');
+        
+        if (error) {
+          console.error('Error tracking visitor:', error);
+          setIsLoading(false);
+          return;
+        }
 
-    const trackVisitor = () => {
-      const visitorId = getVisitorId();
-      
-      // Get stored visitors from localStorage (simulating IP-based tracking)
-      const storedVisitors = localStorage.getItem('vibecoding_visitors');
-      let visitors: string[] = storedVisitors ? JSON.parse(storedVisitors) : [];
-      
-      // Add current visitor if not already tracked
-      if (!visitors.includes(visitorId)) {
-        visitors.push(visitorId);
-        localStorage.setItem('vibecoding_visitors', JSON.stringify(visitors));
+        if (data?.count) {
+          setVisitorCount(data.count);
+        }
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error:', err);
+        setIsLoading(false);
       }
-      
-      // Add some base count to make it look realistic + random growth factor
-      const baseCount = 247;
-      const totalCount = baseCount + visitors.length;
-      
-      setVisitorCount(totalCount);
-      setIsLoading(false);
     };
 
-    // Small delay for effect
-    const timer = setTimeout(trackVisitor, 500);
-    return () => clearTimeout(timer);
+    trackAndFetch();
+
+    // Subscribe to realtime updates for new visitors
+    const channel = supabase
+      .channel('visitors-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'visitors',
+        },
+        (payload) => {
+          console.log('New visitor detected:', payload);
+          // Increment count when new visitor is added
+          setVisitorCount((prev) => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return (
