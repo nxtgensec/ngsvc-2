@@ -77,7 +77,7 @@ const Footer = () => {
           <div>
             <h4 className="font-orbitron font-bold text-foreground mb-4">Quick Links</h4>
             <ul className="space-y-2">
-              {['About', 'Challenges', 'Timeline', 'Benefits', 'Register'].map(link => <li key={link}>
+              {['About', 'Challenges', 'Timeline', 'Rules', 'Register'].map(link => <li key={link}>
                   <a href={`#${link.toLowerCase()}`} className="font-inter text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
                     {link}
                   </a>
@@ -121,7 +121,7 @@ const Footer = () => {
           <div className="flex items-center gap-2">
             <span className="font-orbitron text-xs text-primary tracking-wider">VIBECODING</span>
             <span className="text-muted-foreground">|</span>
-            <span className="font-inter text-xs text-muted-foreground">February Edition 2026</span>
+            <span className="font-inter text-xs text-muted-foreground">March Edition 2026</span>
           </div>
         </div>
       </div>

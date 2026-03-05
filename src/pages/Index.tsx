@@ -3,21 +3,25 @@ import HeroSection from '@/components/HeroSection';
 import AboutSection from '@/components/AboutSection';
 import ChallengesSection from '@/components/ChallengesSection';
 import TimelineSection from '@/components/TimelineSection';
-import BenefitsSection from '@/components/BenefitsSection';
 import RegistrationSection from '@/components/RegistrationSection';
+import FaqRulesSection from '@/components/FaqRulesSection';
+import PastWinnersSection from '@/components/PastWinnersSection';
+import RegisteredTeamsSection from '@/components/RegisteredTeamsSection';
 import Footer from '@/components/Footer';
 import VisitorCounter from '@/components/VisitorCounter';
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen space-shell">
       <Navbar />
       <HeroSection />
       <AboutSection />
       <ChallengesSection />
       <TimelineSection />
-      <BenefitsSection />
       <RegistrationSection />
+      <FaqRulesSection />
+      <PastWinnersSection />
+      <RegisteredTeamsSection />
       <Footer />
       <VisitorCounter />
     </div>

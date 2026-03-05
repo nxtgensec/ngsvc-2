@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, Shield, X } from 'lucide-react';
 import { Button } from './ui/button';
 import nxtgensecLogo from '@/assets/nxtgensec-logo.png';
-
-const REGISTER_LINK = "https://forms.gle/cJiq3hvQQCBwmVZN8";
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,9 +10,10 @@ const Navbar = () => {
   const navLinks = [
     { name: 'Home', href: '#home' },
     { name: 'About', href: '#about' },
-    { name: 'Challenges', href: '#challenges' },
+    { name: 'Tracks', href: '#challenges' },
     { name: 'Timeline', href: '#timeline' },
-    { name: 'Benefits', href: '#benefits' },
+    { name: 'Rules', href: '#rules' },
+    { name: 'Past Hackathons', href: '#past-hackathons' },
   ];
 
   return (
@@ -44,11 +44,22 @@ const Navbar = () => {
                 {link.name}
               </a>
             ))}
-            <a href={REGISTER_LINK} target="_blank" rel="noopener noreferrer">
+            <Link to="/registered-teams" className="font-inter text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
+              Registered Teams
+            </Link>
+            <Link to="/register">
               <Button variant="hero" size="sm">
                 Register Now
               </Button>
-            </a>
+            </Link>
+            <Link
+              to="/admin"
+              className="inline-flex items-center justify-center text-muted-foreground hover:text-primary transition-colors duration-300"
+              aria-label="Admin login"
+              title="Admin login"
+            >
+              <Shield className="w-4 h-4" />
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -74,11 +85,25 @@ const Navbar = () => {
                   {link.name}
                 </a>
               ))}
-              <a href={REGISTER_LINK} target="_blank" rel="noopener noreferrer">
+              <Link
+                to="/registered-teams"
+                className="font-inter text-sm text-muted-foreground hover:text-primary transition-colors duration-300"
+              >
+                Registered Teams
+              </Link>
+              <Link to="/register">
                 <Button variant="hero" size="sm" className="w-fit">
                   Register Now
                 </Button>
-              </a>
+              </Link>
+              <Link
+                to="/admin"
+                className="inline-flex items-center justify-center text-muted-foreground hover:text-primary transition-colors duration-300"
+                aria-label="Admin login"
+                title="Admin login"
+              >
+                <Shield className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         )}

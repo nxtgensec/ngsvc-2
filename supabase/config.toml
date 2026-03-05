@@ -1,1 +1,10 @@
 project_id = "bdfvhyfusrjgbgxrcyga"
+
+[functions.submit-team-registration]
+verify_jwt = false
+
+[functions.list-team-names]
+verify_jwt = false
+
+[functions.admin-registrations]
+verify_jwt = false

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const VisitorCounter = () => {
@@ -31,23 +31,12 @@ const VisitorCounter = () => {
   }, []);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      <div className="px-4 py-3 rounded-xl bg-card/90 backdrop-blur-lg border border-primary/30 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Users className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <p className="font-inter text-xs text-muted-foreground">Unique Visitors</p>
-            <p className="font-orbitron text-lg font-bold text-primary">
-              {isLoading ? (
-                <span className="animate-pulse">...</span>
-              ) : (
-                visitorCount.toLocaleString()
-              )}
-            </p>
-          </div>
-        </div>
+    <div className="fixed bottom-6 left-6 z-50">
+      <div className="px-4 py-2 rounded-full bg-card/90 backdrop-blur-lg border border-primary/30 shadow-lg flex items-center gap-2">
+        <Eye className="w-4 h-4 text-primary" />
+        <p className="font-orbitron text-base font-bold text-primary leading-none">
+          {isLoading ? <span className="animate-pulse">...</span> : visitorCount.toLocaleString()}
+        </p>
       </div>
     </div>
   );
