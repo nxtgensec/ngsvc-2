@@ -12,6 +12,7 @@ const VISITOR_HASH_SALT = Deno.env.get('VISITOR_HASH_SALT')
 const RATE_LIMIT_WINDOW_MS = 60_000
 const RATE_LIMIT_MAX_REQUESTS = 30
 const requestLog = new Map<string, number[]>()
+const INDIA_TIMEZONE = 'Asia/Kolkata'
 
 function getCorsHeaders(origin: string | null) {
   const isAllowed = origin !== null && ALLOWED_ORIGINS.includes(origin)
@@ -48,6 +49,15 @@ function isRateLimited(key: string) {
   inWindow.push(now)
   requestLog.set(key, inWindow)
   return false
+}
+
+function getIndiaDateString() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: INDIA_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
 }
 
 Deno.serve(async (req) => {
@@ -109,6 +119,7 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const indiaDay = getIndiaDateString()
 
     const { error: upsertError } = await supabase
       .from('visitors')
@@ -120,6 +131,52 @@ Deno.serve(async (req) => {
       throw upsertError
     }
 
+    const { error: ensureDailyRowError } = await supabase
+      .from('daily_visitors')
+      .upsert(
+        { day: indiaDay },
+        { onConflict: 'day', ignoreDuplicates: true },
+      )
+    if (ensureDailyRowError) {
+      throw ensureDailyRowError
+    }
+
+    const { error: dailyHitsError } = await supabase.rpc('increment_daily_total_hits', {
+      target_day: indiaDay,
+    })
+    if (dailyHitsError) {
+      throw dailyHitsError
+    }
+
+    const { data: newDailyVisitorRows, error: dailyUniqueError } = await supabase
+      .from('daily_visitor_hashes')
+      .upsert(
+        { day: indiaDay, ip_hash: ipHash },
+        { onConflict: 'day,ip_hash', ignoreDuplicates: true },
+      )
+      .select('day')
+    if (dailyUniqueError) {
+      throw dailyUniqueError
+    }
+
+    if ((newDailyVisitorRows?.length ?? 0) > 0) {
+      const { error: incrementUniqueError } = await supabase.rpc('increment_daily_unique_visitors', {
+        target_day: indiaDay,
+      })
+      if (incrementUniqueError) {
+        throw incrementUniqueError
+      }
+    }
+
+    const { data: dailyStats, error: dailyStatsError } = await supabase
+      .from('daily_visitors')
+      .select('unique_visitors,total_hits')
+      .eq('day', indiaDay)
+      .single()
+    if (dailyStatsError) {
+      throw dailyStatsError
+    }
+
     const { count, error: countError } = await supabase
       .from('visitors')
       .select('*', { count: 'exact', head: true })
@@ -129,7 +186,13 @@ Deno.serve(async (req) => {
 
     const baseCount = 4
     const totalCount = baseCount + (count || 0)
-    return new Response(JSON.stringify({ count: totalCount }), {
+    return new Response(JSON.stringify({
+      count: totalCount,
+      dailyUniqueCount: dailyStats?.unique_visitors ?? 0,
+      dailyTotalHits: dailyStats?.total_hits ?? 0,
+      day: indiaDay,
+      timezone: INDIA_TIMEZONE,
+    }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
