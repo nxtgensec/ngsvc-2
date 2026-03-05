@@ -7,13 +7,13 @@ const VisitorCounter = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Track this visitor and get count
     const trackAndFetch = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('track-visitor');
-        
+        const { data, error } = await supabase.functions.invoke('track-visitor', {
+          method: 'POST',
+        });
+
         if (error) {
-          console.error('Error tracking visitor:', error);
           setIsLoading(false);
           return;
         }
@@ -22,35 +22,12 @@ const VisitorCounter = () => {
           setVisitorCount(data.count);
         }
         setIsLoading(false);
-      } catch (err) {
-        console.error('Error:', err);
+      } catch {
         setIsLoading(false);
       }
     };
 
     trackAndFetch();
-
-    // Subscribe to realtime updates for new visitors
-    const channel = supabase
-      .channel('visitors-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'visitors',
-        },
-        (payload) => {
-          console.log('New visitor detected:', payload);
-          // Increment count when new visitor is added
-          setVisitorCount((prev) => prev + 1);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   return (
