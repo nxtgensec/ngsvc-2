@@ -29,6 +29,28 @@ type RegistrationPayload = {
   member2PostLink?: string
 }
 
+const REQUIRED_FIELDS: Array<keyof RegistrationPayload> = [
+  'teamName',
+  'member1Name',
+  'member1Email',
+  'member1Contact',
+  'member1College',
+  'member1Year',
+  'member1Department',
+  'member1Linkedin',
+  'member1Github',
+  'member1PostLink',
+  'member2Name',
+  'member2Email',
+  'member2Contact',
+  'member2College',
+  'member2Year',
+  'member2Department',
+  'member2Linkedin',
+  'member2Github',
+  'member2PostLink',
+]
+
 function isAllowedOrigin(origin: string | null) {
   if (!origin) return false
   if (ALLOW_ALL_ORIGINS || ALLOWED_ORIGINS.includes(origin)) return true
@@ -83,6 +105,14 @@ Deno.serve(async (req) => {
   try {
     const payload = (await req.json()) as RegistrationPayload
     const normalize = (value: unknown) => (typeof value === 'string' ? value.trim() : '')
+    const missing = REQUIRED_FIELDS.find((field) => !normalize(payload[field]))
+    if (missing) {
+      return new Response(JSON.stringify({ error: `${missing} is required` }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const baseTeamName = normalize(payload.teamName) || `Team-${Date.now()}`
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')

@@ -2,7 +2,6 @@ import { FormEvent, Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 
 type RegistrationRecord = {
   id: string;
@@ -35,9 +34,6 @@ type AdminActionPayload = {
   id?: string;
   updates?: Partial<Omit<RegistrationRecord, 'id' | 'created_at'>>;
 };
-
-const DEFAULT_ADMIN_EMAIL = 'vibecoding@gmail.com';
-const DEFAULT_ADMIN_PASSWORD = 'vc@vc@';
 
 const Admin = () => {
   const [email, setEmail] = useState('');
@@ -81,27 +77,8 @@ const Admin = () => {
   };
 
   const loadRecords = async (currentEmail: string, currentPassword: string) => {
-    try {
-      const data = await invokeAdminApi({ email: currentEmail, password: currentPassword, action: 'list' });
-      setRecords((data.records ?? []) as RegistrationRecord[]);
-    } catch (err) {
-      if (currentEmail !== DEFAULT_ADMIN_EMAIL || currentPassword !== DEFAULT_ADMIN_PASSWORD) {
-        throw err instanceof Error ? err : new Error('Invalid credentials');
-      }
-
-      const { data: rows, error: dbError } = await supabase
-        .from('team_registrations')
-        .select(
-          'id,team_name,member1_name,member1_email,member1_contact,member1_college,member1_year,member1_department,member1_linkedin,member1_github,member1_post_link,member2_name,member2_email,member2_contact,member2_college,member2_year,member2_department,member2_linkedin,member2_github,member2_post_link,created_at',
-        )
-        .order('created_at', { ascending: false });
-
-      if (dbError) {
-        throw new Error(dbError.message || 'Unable to load records');
-      }
-
-      setRecords((rows ?? []) as RegistrationRecord[]);
-    }
+    const data = await invokeAdminApi({ email: currentEmail, password: currentPassword, action: 'list' });
+    setRecords((data.records ?? []) as RegistrationRecord[]);
   };
 
   const onLogin = async (e: FormEvent<HTMLFormElement>) => {
@@ -191,23 +168,7 @@ const Admin = () => {
       setEditingId(null);
       setEditingRow({});
     } catch (err) {
-      if (email === DEFAULT_ADMIN_EMAIL && password === DEFAULT_ADMIN_PASSWORD) {
-        const { error: updateError } = await supabase
-          .from('team_registrations')
-          .update(payload as never)
-          .eq('id', id);
-
-        if (!updateError) {
-          await loadRecords(email, password);
-          setEditingId(null);
-          setEditingRow({});
-          setError(null);
-        } else {
-          setError(updateError.message || 'Update failed');
-        }
-      } else {
-        setError(err instanceof Error ? err.message : 'Update failed');
-      }
+      setError(err instanceof Error ? err.message : 'Update failed');
     } finally {
       setLoading(false);
     }

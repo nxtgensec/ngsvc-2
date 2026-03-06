@@ -2,7 +2,6 @@ import { ChangeEvent, FormEvent, useState } from 'react';
 import { AlertTriangle, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 
 type RegistrationForm = {
   teamName: string;
@@ -27,6 +26,27 @@ type RegistrationForm = {
 };
 
 const normalize = (value: string) => value.trim();
+const REQUIRED_LABELS: Array<{ key: keyof RegistrationForm; label: string }> = [
+  { key: 'teamName', label: 'Team Name' },
+  { key: 'member1Name', label: 'Team Lead Name' },
+  { key: 'member1Email', label: 'Team Lead Email' },
+  { key: 'member1Contact', label: 'Team Lead Contact' },
+  { key: 'member1College', label: 'Team Lead College' },
+  { key: 'member1Year', label: 'Team Lead Year' },
+  { key: 'member1Department', label: 'Team Lead Department' },
+  { key: 'member1Linkedin', label: 'Team Lead LinkedIn' },
+  { key: 'member1Github', label: 'Team Lead GitHub' },
+  { key: 'member1PostLink', label: 'Team Lead LinkedIn Post URL' },
+  { key: 'member2Name', label: 'Team Mate Name' },
+  { key: 'member2Email', label: 'Team Mate Email' },
+  { key: 'member2Contact', label: 'Team Mate Contact' },
+  { key: 'member2College', label: 'Team Mate College' },
+  { key: 'member2Year', label: 'Team Mate Year' },
+  { key: 'member2Department', label: 'Team Mate Department' },
+  { key: 'member2Linkedin', label: 'Team Mate LinkedIn' },
+  { key: 'member2Github', label: 'Team Mate GitHub' },
+  { key: 'member2PostLink', label: 'Team Mate LinkedIn Post URL' },
+];
 
 const initialForm: RegistrationForm = {
   teamName: '',
@@ -70,6 +90,7 @@ const Field = ({
       value={value}
       onChange={onChange}
       type="text"
+      required
       className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none transition-colors focus:border-primary"
       placeholder={placeholder}
     />
@@ -87,51 +108,15 @@ const Register = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const insertDirectToDb = async () => {
-    const baseTeamName = normalize(form.teamName) || `Team-${Date.now()}`;
-
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const teamName = attempt === 0 ? baseTeamName : `${baseTeamName}-${attempt + 1}`;
-      const { error: insertError } = await supabase.from('team_registrations').insert({
-        team_name: teamName,
-        member1_name: normalize(form.member1Name),
-        member1_email: normalize(form.member1Email),
-        member1_contact: normalize(form.member1Contact),
-        member1_college: normalize(form.member1College),
-        member1_year: normalize(form.member1Year),
-        member1_department: normalize(form.member1Department),
-        member1_linkedin: normalize(form.member1Linkedin),
-        member1_github: normalize(form.member1Github),
-        member1_post_link: normalize(form.member1PostLink),
-        member2_name: normalize(form.member2Name),
-        member2_email: normalize(form.member2Email),
-        member2_contact: normalize(form.member2Contact),
-        member2_college: normalize(form.member2College),
-        member2_year: normalize(form.member2Year),
-        member2_department: normalize(form.member2Department),
-        member2_linkedin: normalize(form.member2Linkedin),
-        member2_github: normalize(form.member2Github),
-        member2_post_link: normalize(form.member2PostLink),
-        contact_number: null,
-        organization: null,
-        skills: null,
-      } as never);
-
-      if (!insertError) {
-        return null;
-      }
-
-      if ((insertError as { code?: string }).code !== '23505') {
-        return insertError.message || 'Direct DB insert failed.';
-      }
-    }
-
-    return 'Could not generate a unique team name. Please retry.';
-  };
-
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+
+    const missing = REQUIRED_LABELS.find(({ key }) => !normalize(form[key]));
+    if (missing) {
+      setError(`${missing.label} is required.`);
+      return;
+    }
 
     setSaving(true);
     const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim();
@@ -144,45 +129,32 @@ const Register = () => {
       return;
     }
 
-    let submittedViaApi = false;
-    let lastError: string | null = null;
-
     try {
-      try {
-        const res = await fetch(functionUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: apiKey,
-          },
-          body: JSON.stringify(form),
-        });
+      const res = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: apiKey,
+        },
+        body: JSON.stringify(form),
+      });
 
-        if (res.ok) {
-          submittedViaApi = true;
-        } else {
-          let message = `Registration failed (HTTP ${res.status}).`;
-          try {
-            const body = (await res.json()) as { error?: string };
-            if (body?.error) {
-              message = body.error;
-            }
-          } catch {
-            // Ignore parse failures and use status-based message.
+      if (!res.ok) {
+        let message = `Registration failed (HTTP ${res.status}).`;
+        try {
+          const body = (await res.json()) as { error?: string };
+          if (body?.error) {
+            message = body.error;
           }
-          lastError = message;
+        } catch {
+          // Ignore parse failures and use status-based message.
         }
-      } catch {
-        lastError = 'Edge Function unavailable from this browser. Trying direct database save...';
+        setError(message);
+        return;
       }
-
-      if (!submittedViaApi) {
-        const dbError = await insertDirectToDb();
-        if (dbError) {
-          setError(lastError ? `${lastError} ${dbError}` : dbError);
-          return;
-        }
-      }
+    } catch {
+      setError('Registration service is unreachable. Please retry in a moment.');
+      return;
     } finally {
       setSaving(false);
     }

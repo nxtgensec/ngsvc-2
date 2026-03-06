@@ -9,10 +9,6 @@ const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? DEFAULT_ALLOWED_ORIG
   .map((origin) => origin.trim())
   .filter(Boolean)
 const ALLOW_ALL_ORIGINS = ALLOWED_ORIGINS.includes('*')
-const VISITOR_HASH_SALT = Deno.env.get('VISITOR_HASH_SALT')
-const RATE_LIMIT_WINDOW_MS = 60_000
-const RATE_LIMIT_MAX_REQUESTS = 30
-const requestLog = new Map<string, number[]>()
 const INDIA_TIMEZONE = 'Asia/Kolkata'
 const VISITOR_BASE_COUNT = Number.parseInt(Deno.env.get('VISITOR_BASE_COUNT') ?? '147', 10) || 147
 
@@ -39,36 +35,9 @@ function getCorsHeaders(origin: string | null) {
     ...(ALLOW_ALL_ORIGINS ? { 'Access-Control-Allow-Origin': '*' } : {}),
     ...(!ALLOW_ALL_ORIGINS && isAllowed && origin ? { 'Access-Control-Allow-Origin': origin } : {}),
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
     Vary: 'Origin',
   }
-}
-
-function isValidIp(ip: string) {
-  const ipv4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/
-  const ipv6 = /^[0-9a-fA-F:]+$/
-  return ipv4.test(ip) || ipv6.test(ip)
-}
-
-async function sha256(value: string) {
-  const encoded = new TextEncoder().encode(value)
-  const hash = await crypto.subtle.digest('SHA-256', encoded)
-  return Array.from(new Uint8Array(hash))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('')
-}
-
-function isRateLimited(key: string) {
-  const now = Date.now()
-  const previous = requestLog.get(key) ?? []
-  const inWindow = previous.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS)
-  if (inWindow.length >= RATE_LIMIT_MAX_REQUESTS) {
-    requestLog.set(key, inWindow)
-    return true
-  }
-  inWindow.push(now)
-  requestLog.set(key, inWindow)
-  return false
 }
 
 function getIndiaDateString() {
@@ -92,7 +61,7 @@ Deno.serve(async (req) => {
     return new Response('ok', { status: 204, headers: corsHeaders })
   }
 
-  if (req.method !== 'POST') {
+  if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -106,32 +75,7 @@ Deno.serve(async (req) => {
     })
   }
 
-  if (!VISITOR_HASH_SALT) {
-    console.error('VISITOR_HASH_SALT is not configured.')
-    return new Response(JSON.stringify({ error: 'Service unavailable' }), {
-      status: 503,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
   try {
-    const forwardedFor = req.headers.get('x-forwarded-for')
-    const clientIp = forwardedFor?.split(',')[0]?.trim()
-    if (!clientIp || !isValidIp(clientIp)) {
-      return new Response(JSON.stringify({ error: 'Invalid client address' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const ipHash = await sha256(`${VISITOR_HASH_SALT}:${clientIp}`)
-    if (isRateLimited(ipHash)) {
-      return new Response(JSON.stringify({ error: 'Too many requests' }), {
-        status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (!supabaseUrl || !supabaseServiceKey) {
@@ -141,59 +85,12 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const indiaDay = getIndiaDateString()
 
-    const { error: upsertError } = await supabase
-      .from('visitors')
-      .upsert(
-        { ip_hash: ipHash },
-        { onConflict: 'ip_hash', ignoreDuplicates: true },
-      )
-    if (upsertError) {
-      throw upsertError
-    }
-
-    const { error: ensureDailyRowError } = await supabase
-      .from('daily_visitors')
-      .upsert(
-        { day: indiaDay },
-        { onConflict: 'day', ignoreDuplicates: true },
-      )
-    if (ensureDailyRowError) {
-      throw ensureDailyRowError
-    }
-
-    const { error: dailyHitsError } = await supabase.rpc('increment_daily_total_hits', {
-      target_day: indiaDay,
-    })
-    if (dailyHitsError) {
-      throw dailyHitsError
-    }
-
-    const { data: newDailyVisitorRows, error: dailyUniqueError } = await supabase
-      .from('daily_visitor_hashes')
-      .upsert(
-        { day: indiaDay, ip_hash: ipHash },
-        { onConflict: 'day,ip_hash', ignoreDuplicates: true },
-      )
-      .select('day')
-    if (dailyUniqueError) {
-      throw dailyUniqueError
-    }
-
-    if ((newDailyVisitorRows?.length ?? 0) > 0) {
-      const { error: incrementUniqueError } = await supabase.rpc('increment_daily_unique_visitors', {
-        target_day: indiaDay,
-      })
-      if (incrementUniqueError) {
-        throw incrementUniqueError
-      }
-    }
-
     const { data: dailyStats, error: dailyStatsError } = await supabase
       .from('daily_visitors')
       .select('unique_visitors,total_hits')
       .eq('day', indiaDay)
       .single()
-    if (dailyStatsError) {
+    if (dailyStatsError && dailyStatsError.code !== 'PGRST116') {
       throw dailyStatsError
     }
 
@@ -216,7 +113,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('track-visitor failed', error)
+    console.error('get-visitor-stats failed', error)
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

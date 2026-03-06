@@ -1,73 +1,104 @@
-# Welcome to your Lovable project
+﻿# NXTGENSEC VibeCoding Hackathon Platform
 
-## Project info
+Official platform for NXTGENSEC monthly VibeCoding Hackathon editions.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Overview
 
-## How can I edit this code?
+This project powers:
 
-There are several ways of editing your application.
+- Public hackathon landing page (March 2026 edition)
+- Team-based registration flow (max 2 members per team)
+- Registered team listing
+- Admin dashboard with edit/delete/export capabilities
+- Daily unique visitor tracking backed by Supabase
 
-**Use Lovable**
+## Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- React + TypeScript
+- Vite
+- Tailwind CSS + shadcn/ui
+- Supabase (Postgres, RLS, Edge Functions)
+- Vercel (frontend deployment)
 
-Changes made via Lovable will be committed automatically to this repo.
+## Project Structure
 
-**Use your preferred IDE**
+- `src/` - Frontend application
+- `supabase/migrations/` - Database migrations
+- `supabase/functions/` - Edge Functions
+- `public/` - Static assets and branding files
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Local Development
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 1) Install dependencies
 
-Follow these steps:
+```bash
+npm install
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 2) Configure environment
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Create `.env` with:
 
-# Step 3: Install the necessary dependencies.
-npm i
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 3) Run dev server
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Default URL: `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Supabase Setup
 
-**Use GitHub Codespaces**
+### 1) Apply migrations
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Run all SQL files in `supabase/migrations/` against your Supabase project.
 
-## What technologies are used for this project?
+### 2) Deploy edge functions
 
-This project is built with:
+Deploy required functions from `supabase/functions/`, including:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- `submit-team-registration`
+- `admin-registrations`
+- `list-team-names`
+- `track-visitor`
+- `get-visitor-stats`
 
-## How can I deploy this project?
+### 3) Configure function secrets
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Set required secrets in Supabase (Project Settings -> Edge Functions -> Secrets), including:
 
-## Can I connect a custom domain to my Lovable project?
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `VISITOR_HASH_SALT`
+- `VISITOR_BASE_COUNT` (set to `147` to continue existing count baseline)
 
-Yes, you can!
+## Deployment (Production)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Recommended release flow:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+1. Develop and verify locally.
+2. Push code to GitHub (`main`).
+3. Deploy frontend through Vercel.
+4. Ensure Supabase migrations/functions are deployed to production.
+5. Verify registration, admin actions, and visitor counter in production.
+
+## Security Notes
+
+- Registration and admin operations are handled via Supabase Edge Functions.
+- RLS and grants are managed through migrations.
+- Sensitive credentials are kept in Supabase/Vercel secrets, not in client code.
+
+## Branding
+
+All Lovable references have been removed from app metadata/build config and replaced with NXTGENSEC branding assets.
+
+## Contact
+
+- Website: [nxtgensec.org](https://www.nxtgensec.org)
+- Hackathon Email: [vibecoding@nxtgensec.org](mailto:vibecoding@nxtgensec.org)

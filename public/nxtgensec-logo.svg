@@ -1,0 +1,14 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#000000" />
+  <circle cx="600" cy="315" r="190" fill="url(#paint0_radial)" opacity="0.28" />
+  <path d="M459 213H742V416H459V213Z" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2" />
+  <path d="M507 257L567 344L633 274L692 366" stroke="#22D3EE" stroke-width="6" stroke-linecap="round" />
+  <text x="600" y="465" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="58" font-weight="700" text-anchor="middle">NXTGENSEC</text>
+  <text x="600" y="515" fill="#A1A1AA" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="500" text-anchor="middle">VibeCoding Hackathon</text>
+  <defs>
+    <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(600 315) rotate(90) scale(220)">
+      <stop stop-color="#22D3EE" />
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+</svg>
