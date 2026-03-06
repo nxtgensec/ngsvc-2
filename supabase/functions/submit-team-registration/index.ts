@@ -1,9 +1,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:8080', 'http://localhost:8081']
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:8080',
+  'http://localhost:8081',
+  'https://vibecoding.nxtgensec.org',
+  'https://nxtgensec.org',
+]
+const DEFAULT_ALLOWED_HOST_SUFFIXES = ['.vercel.app', '.nxtgensec.org']
 const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? DEFAULT_ALLOWED_ORIGINS.join(','))
   .split(',')
   .map((origin) => origin.trim())
+  .filter(Boolean)
+const ALLOWED_ORIGIN_HOST_SUFFIXES = (Deno.env.get('ALLOWED_ORIGIN_HOST_SUFFIXES') ?? DEFAULT_ALLOWED_HOST_SUFFIXES.join(','))
+  .split(',')
+  .map((suffix) => suffix.trim().toLowerCase())
   .filter(Boolean)
 const ALLOW_ALL_ORIGINS = ALLOWED_ORIGINS.includes('*')
 
@@ -57,6 +67,19 @@ function isAllowedOrigin(origin: string | null) {
 
   try {
     const parsed = new URL(origin)
+    const hostname = parsed.hostname.toLowerCase()
+
+    if (
+      parsed.protocol === 'https:' &&
+      ALLOWED_ORIGIN_HOST_SUFFIXES.some((suffix) => {
+        const normalized = suffix.startsWith('.') ? suffix : `.${suffix}`
+        const exact = normalized.slice(1)
+        return hostname === exact || hostname.endsWith(normalized)
+      })
+    ) {
+      return true
+    }
+
     if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return true
     if ((parsed.hostname.startsWith('192.168.') || parsed.hostname.startsWith('10.')) && (parsed.port === '8080' || parsed.port === '8081')) {
       return true

@@ -120,12 +120,14 @@ const Register = () => {
 
     setSaving(true);
     const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim();
-    const apiKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
+    const apiKey = String(
+      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+    ).trim();
     const functionUrl = `${supabaseUrl}/functions/v1/submit-team-registration`;
 
     if (!supabaseUrl || !apiKey) {
       setSaving(false);
-      setError('Supabase configuration is missing in frontend environment.');
+      setError('Supabase configuration is missing in frontend environment (URL/Anon key).');
       return;
     }
 
