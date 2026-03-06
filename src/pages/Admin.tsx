@@ -47,33 +47,43 @@ const Admin = () => {
 
   const invokeAdminApi = async (payload: AdminActionPayload) => {
     const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim();
-    const apiKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
-
-    try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/admin-registrations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: apiKey,
-        },
-        body: JSON.stringify(payload),
-      });
-      const body = (await res.json()) as { error?: string; records?: RegistrationRecord[] };
-      if (!res.ok || body.error) {
-        throw new Error(body.error || `Admin API failed (${res.status})`);
-      }
-      return body;
-    } catch {
-      const { data, error } = await supabase.functions.invoke('admin-registrations', {
-        method: 'POST',
-        body: payload,
-      });
-      const invokeBody = (data ?? {}) as { error?: string; records?: RegistrationRecord[] };
-      if (error || invokeBody.error) {
-        throw new Error(invokeBody.error || error?.message || 'Unable to reach admin service');
-      }
-      return invokeBody;
+    if (!supabaseUrl) {
+      throw new Error('Supabase configuration is missing in frontend environment (URL).');
     }
+
+    const functionUrls: string[] = [];
+    functionUrls.push(`${supabaseUrl}/functions/v1/admin-registrations`);
+    try {
+      const host = new URL(supabaseUrl).hostname;
+      const ref = host.split('.')[0];
+      if (ref) {
+        functionUrls.push(`https://${ref}.functions.supabase.co/admin-registrations`);
+      }
+    } catch {
+      // Ignore malformed URL parsing and use primary endpoint only.
+    }
+
+    let lastError = 'Unable to reach admin service';
+    for (const functionUrl of Array.from(new Set(functionUrls))) {
+      try {
+        const res = await fetch(functionUrl, {
+          method: 'POST',
+          // Keep request simple to avoid browser preflight/CORS failures.
+          body: JSON.stringify(payload),
+          cache: 'no-store',
+        });
+        const body = (await res.json()) as { error?: string; records?: RegistrationRecord[] };
+        if (!res.ok || body.error) {
+          lastError = body.error || `Admin API failed (${res.status})`;
+          continue;
+        }
+        return body;
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : 'Unable to reach admin service';
+      }
+    }
+
+    throw new Error(lastError);
   };
 
   const loadRecords = async (currentEmail: string, currentPassword: string) => {

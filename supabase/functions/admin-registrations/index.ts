@@ -1,11 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:8080', 'http://localhost:8081']
-const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? DEFAULT_ALLOWED_ORIGINS.join(','))
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean)
-const ALLOW_ALL_ORIGINS = ALLOWED_ORIGINS.includes('*')
+const ALLOW_ALL_ORIGINS = true
 
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') ?? 'vibecoding@gmail.com'
 const ADMIN_PASSWORD = Deno.env.get('ADMIN_PASSWORD') ?? 'vc@vc@'
@@ -39,29 +34,16 @@ type AdminPayload = {
 }
 
 function isAllowedOrigin(origin: string | null) {
-  if (!origin) return false
-  if (ALLOW_ALL_ORIGINS || ALLOWED_ORIGINS.includes(origin)) return true
-
-  try {
-    const parsed = new URL(origin)
-    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return true
-    if ((parsed.hostname.startsWith('192.168.') || parsed.hostname.startsWith('10.')) && (parsed.port === '8080' || parsed.port === '8081')) {
-      return true
-    }
-  } catch {
-    return false
-  }
-
-  return false
+  if (ALLOW_ALL_ORIGINS) return true
+  return Boolean(origin)
 }
 
 function getCorsHeaders(origin: string | null) {
-  const isAllowed = isAllowedOrigin(origin)
   return {
-    ...(ALLOW_ALL_ORIGINS ? { 'Access-Control-Allow-Origin': '*' } : {}),
-    ...(!ALLOW_ALL_ORIGINS && isAllowed && origin ? { 'Access-Control-Allow-Origin': origin } : {}),
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Cache-Control': 'no-store',
     Vary: 'Origin',
   }
 }
