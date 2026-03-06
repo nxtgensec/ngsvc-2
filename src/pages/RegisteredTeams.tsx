@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Users } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchTeamNames } from '@/lib/fetchTeamNames';
 
 const RegisteredTeams = () => {
   const [teams, setTeams] = useState<string[]>([]);
@@ -9,12 +9,8 @@ const RegisteredTeams = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data, error } = await supabase.functions.invoke('list-team-names', {
-        method: 'GET',
-      });
-      if (!error && Array.isArray(data?.teams)) {
-        setTeams((data.teams as string[]).filter(Boolean));
-      }
+      const fetchedTeams = await fetchTeamNames();
+      setTeams(fetchedTeams);
       setLoading(false);
     };
     load();
