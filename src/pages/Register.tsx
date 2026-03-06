@@ -28,24 +28,8 @@ type RegistrationForm = {
 const normalize = (value: string) => value.trim();
 const REQUIRED_LABELS: Array<{ key: keyof RegistrationForm; label: string }> = [
   { key: 'teamName', label: 'Team Name' },
-  { key: 'member1Name', label: 'Team Lead Name' },
   { key: 'member1Email', label: 'Team Lead Email' },
   { key: 'member1Contact', label: 'Team Lead Contact' },
-  { key: 'member1College', label: 'Team Lead College' },
-  { key: 'member1Year', label: 'Team Lead Year' },
-  { key: 'member1Department', label: 'Team Lead Department' },
-  { key: 'member1Linkedin', label: 'Team Lead LinkedIn' },
-  { key: 'member1Github', label: 'Team Lead GitHub' },
-  { key: 'member1PostLink', label: 'Team Lead LinkedIn Post URL' },
-  { key: 'member2Name', label: 'Team Mate Name' },
-  { key: 'member2Email', label: 'Team Mate Email' },
-  { key: 'member2Contact', label: 'Team Mate Contact' },
-  { key: 'member2College', label: 'Team Mate College' },
-  { key: 'member2Year', label: 'Team Mate Year' },
-  { key: 'member2Department', label: 'Team Mate Department' },
-  { key: 'member2Linkedin', label: 'Team Mate LinkedIn' },
-  { key: 'member2Github', label: 'Team Mate GitHub' },
-  { key: 'member2PostLink', label: 'Team Mate LinkedIn Post URL' },
 ];
 
 const initialForm: RegistrationForm = {
@@ -76,12 +60,14 @@ const Field = ({
   value,
   onChange,
   placeholder,
+  required = false,
 }: {
   label: string;
   name: keyof RegistrationForm;
   value: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
+  required?: boolean;
 }) => (
   <div>
     <label className="mb-2 block font-inter text-sm">{label}</label>
@@ -90,7 +76,7 @@ const Field = ({
       value={value}
       onChange={onChange}
       type="text"
-      required
+      required={required}
       className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none transition-colors focus:border-primary"
       placeholder={placeholder}
     />
@@ -213,6 +199,7 @@ const Register = () => {
                   name="teamName"
                   value={form.teamName}
                   onChange={onChange}
+                  required
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none transition-colors focus:border-primary"
                   placeholder="Enter team name"
                 />
@@ -223,8 +210,8 @@ const Register = () => {
                   <h2 className="font-orbitron text-xl font-semibold mb-5">Team Lead (Person 1)</h2>
                   <div className="space-y-4">
                     <Field label="Name" name="member1Name" value={form.member1Name} onChange={onChange} placeholder="Full name" />
-                    <Field label="Email" name="member1Email" value={form.member1Email} onChange={onChange} placeholder="name@email.com" />
-                    <Field label="Contact" name="member1Contact" value={form.member1Contact} onChange={onChange} placeholder="+91..." />
+                    <Field label="Email" name="member1Email" value={form.member1Email} onChange={onChange} placeholder="name@email.com" required />
+                    <Field label="Contact" name="member1Contact" value={form.member1Contact} onChange={onChange} placeholder="+91..." required />
                     <Field label="College" name="member1College" value={form.member1College} onChange={onChange} placeholder="College name" />
                     <Field label="Year" name="member1Year" value={form.member1Year} onChange={onChange} placeholder="1st/2nd/3rd/4th" />
                     <Field label="Department" name="member1Department" value={form.member1Department} onChange={onChange} placeholder="CSE/IT/ECE..." />
