@@ -13,8 +13,29 @@ const ADMIN_PASSWORD = Deno.env.get('ADMIN_PASSWORD') ?? 'vc@vc@'
 type AdminPayload = {
   email: string
   password: string
-  action: 'list' | 'delete'
+  action: 'list' | 'delete' | 'update'
   id?: string
+  updates?: {
+    team_name?: string
+    member1_name?: string
+    member1_email?: string
+    member1_contact?: string
+    member1_college?: string
+    member1_year?: string
+    member1_department?: string
+    member1_linkedin?: string
+    member1_github?: string
+    member1_post_link?: string
+    member2_name?: string
+    member2_email?: string
+    member2_contact?: string
+    member2_college?: string
+    member2_year?: string
+    member2_department?: string
+    member2_linkedin?: string
+    member2_github?: string
+    member2_post_link?: string
+  }
 }
 
 function isAllowedOrigin(origin: string | null) {
@@ -98,10 +119,49 @@ Deno.serve(async (req) => {
       if (deleteError) throw deleteError
     }
 
+    if (payload.action === 'update') {
+      if (!payload.id) {
+        return new Response(JSON.stringify({ error: 'Missing registration id' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const updates = payload.updates ?? {}
+      const normalize = (value: string | undefined) => (typeof value === 'string' ? value.trim() : '')
+      const updatePayload = {
+        team_name: normalize(updates.team_name),
+        member1_name: normalize(updates.member1_name),
+        member1_email: normalize(updates.member1_email),
+        member1_contact: normalize(updates.member1_contact),
+        member1_college: normalize(updates.member1_college),
+        member1_year: normalize(updates.member1_year),
+        member1_department: normalize(updates.member1_department),
+        member1_linkedin: normalize(updates.member1_linkedin),
+        member1_github: normalize(updates.member1_github),
+        member1_post_link: normalize(updates.member1_post_link),
+        member2_name: normalize(updates.member2_name),
+        member2_email: normalize(updates.member2_email),
+        member2_contact: normalize(updates.member2_contact),
+        member2_college: normalize(updates.member2_college),
+        member2_year: normalize(updates.member2_year),
+        member2_department: normalize(updates.member2_department),
+        member2_linkedin: normalize(updates.member2_linkedin),
+        member2_github: normalize(updates.member2_github),
+        member2_post_link: normalize(updates.member2_post_link),
+      }
+
+      const { error: updateError } = await supabase
+        .from('team_registrations')
+        .update(updatePayload)
+        .eq('id', payload.id)
+      if (updateError) throw updateError
+    }
+
     const { data, error } = await supabase
       .from('team_registrations')
       .select(
-        'id,team_name,member1_name,member1_email,member1_contact,member1_linkedin,member1_github,member1_post_link,member2_name,member2_email,member2_contact,member2_linkedin,member2_github,member2_post_link,created_at',
+        'id,team_name,member1_name,member1_email,member1_contact,member1_college,member1_year,member1_department,member1_linkedin,member1_github,member1_post_link,member2_name,member2_email,member2_contact,member2_college,member2_year,member2_department,member2_linkedin,member2_github,member2_post_link,created_at',
       )
       .order('created_at', { ascending: false })
     if (error) throw error

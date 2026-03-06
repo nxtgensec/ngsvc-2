@@ -12,9 +12,22 @@ const RegisteredTeams = () => {
       const { data, error } = await supabase.functions.invoke('list-team-names', {
         method: 'GET',
       });
-      if (!error && Array.isArray(data?.teams)) {
-        setTeams(data.teams as string[]);
+
+      if (!error && Array.isArray(data?.teams) && data.teams.length > 0) {
+        setTeams((data.teams as string[]).filter(Boolean));
+        setLoading(false);
+        return;
       }
+
+      const { data: rows, error: dbError } = await supabase
+        .from('team_registrations')
+        .select('team_name')
+        .order('created_at', { ascending: false });
+
+      if (!dbError && Array.isArray(rows)) {
+        setTeams(rows.map((row) => row.team_name).filter(Boolean));
+      }
+
       setLoading(false);
     };
     load();

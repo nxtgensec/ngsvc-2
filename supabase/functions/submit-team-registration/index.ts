@@ -8,19 +8,25 @@ const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? DEFAULT_ALLOWED_ORIG
 const ALLOW_ALL_ORIGINS = ALLOWED_ORIGINS.includes('*')
 
 type RegistrationPayload = {
-  teamName: string
-  member1Name: string
-  member1Email: string
-  member1Contact: string
-  member1Linkedin: string
-  member1Github: string
-  member1PostLink: string
-  member2Name: string
-  member2Email: string
-  member2Contact: string
-  member2Linkedin: string
-  member2Github: string
-  member2PostLink: string
+  teamName?: string
+  member1Name?: string
+  member1Email?: string
+  member1Contact?: string
+  member1College?: string
+  member1Year?: string
+  member1Department?: string
+  member1Linkedin?: string
+  member1Github?: string
+  member1PostLink?: string
+  member2Name?: string
+  member2Email?: string
+  member2Contact?: string
+  member2College?: string
+  member2Year?: string
+  member2Department?: string
+  member2Linkedin?: string
+  member2Github?: string
+  member2PostLink?: string
 }
 
 function isAllowedOrigin(origin: string | null) {
@@ -76,27 +82,8 @@ Deno.serve(async (req) => {
 
   try {
     const payload = (await req.json()) as RegistrationPayload
-    const teamName = payload.teamName?.trim()
-    if (
-      !teamName ||
-      !payload.member1Name?.trim() ||
-      !payload.member1Email?.trim() ||
-      !payload.member1Contact?.trim() ||
-      !payload.member1Linkedin?.trim() ||
-      !payload.member1Github?.trim() ||
-      !payload.member1PostLink?.trim() ||
-      !payload.member2Name?.trim() ||
-      !payload.member2Email?.trim() ||
-      !payload.member2Contact?.trim() ||
-      !payload.member2Linkedin?.trim() ||
-      !payload.member2Github?.trim() ||
-      !payload.member2PostLink?.trim()
-    ) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    const normalize = (value: unknown) => (typeof value === 'string' ? value.trim() : '')
+    const baseTeamName = normalize(payload.teamName) || `Team-${Date.now()}`
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -106,49 +93,45 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { data: existingTeam, error: existingError } = await supabase
-      .from('team_registrations')
-      .select('id')
-      .ilike('team_name', teamName)
-      .maybeSingle()
-    if (existingError) throw existingError
-    if (existingTeam) {
-      return new Response(JSON.stringify({ error: 'Team name already registered' }), {
-        status: 409,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const teamName = attempt === 0 ? baseTeamName : `${baseTeamName}-${attempt + 1}`
+      const { error: insertError } = await supabase.from('team_registrations').insert({
+        team_name: teamName,
+        member1_name: normalize(payload.member1Name),
+        member1_email: normalize(payload.member1Email),
+        member1_contact: normalize(payload.member1Contact),
+        member1_college: normalize(payload.member1College),
+        member1_year: normalize(payload.member1Year),
+        member1_department: normalize(payload.member1Department),
+        member1_linkedin: normalize(payload.member1Linkedin),
+        member1_github: normalize(payload.member1Github),
+        member1_post_link: normalize(payload.member1PostLink),
+        member2_name: normalize(payload.member2Name),
+        member2_email: normalize(payload.member2Email),
+        member2_contact: normalize(payload.member2Contact),
+        member2_college: normalize(payload.member2College),
+        member2_year: normalize(payload.member2Year),
+        member2_department: normalize(payload.member2Department),
+        member2_linkedin: normalize(payload.member2Linkedin),
+        member2_github: normalize(payload.member2Github),
+        member2_post_link: normalize(payload.member2PostLink),
+        contact_number: null,
+        organization: null,
+        skills: null,
       })
-    }
-
-    const { error: insertError } = await supabase.from('team_registrations').insert({
-      team_name: teamName,
-      member1_name: payload.member1Name.trim(),
-      member1_email: payload.member1Email.trim(),
-      member1_contact: payload.member1Contact.trim(),
-      member1_linkedin: payload.member1Linkedin.trim(),
-      member1_github: payload.member1Github.trim(),
-      member1_post_link: payload.member1PostLink.trim(),
-      member2_name: payload.member2Name.trim(),
-      member2_email: payload.member2Email.trim(),
-      member2_contact: payload.member2Contact.trim(),
-      member2_linkedin: payload.member2Linkedin.trim(),
-      member2_github: payload.member2Github.trim(),
-      member2_post_link: payload.member2PostLink.trim(),
-      contact_number: null,
-      organization: null,
-      skills: null,
-    })
-    if (insertError) {
-      if (insertError.code === '23505') {
-        return new Response(JSON.stringify({ error: 'Team name already registered' }), {
-          status: 409,
+      if (!insertError) {
+        return new Response(JSON.stringify({ success: true, teamName }), {
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
-      throw insertError
+      if (insertError.code !== '23505') {
+        throw insertError
+      }
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
+    return new Response(JSON.stringify({ error: 'Could not generate unique team name, please retry' }), {
+      status: 409,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {

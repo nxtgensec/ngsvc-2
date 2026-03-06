@@ -2,34 +2,49 @@ import { ChangeEvent, FormEvent, useState } from 'react';
 import { AlertTriangle, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 type RegistrationForm = {
   teamName: string;
   member1Name: string;
   member1Email: string;
   member1Contact: string;
+  member1College: string;
+  member1Year: string;
+  member1Department: string;
   member1Linkedin: string;
   member1Github: string;
   member1PostLink: string;
   member2Name: string;
   member2Email: string;
   member2Contact: string;
+  member2College: string;
+  member2Year: string;
+  member2Department: string;
   member2Linkedin: string;
   member2Github: string;
   member2PostLink: string;
 };
+
+const normalize = (value: string) => value.trim();
 
 const initialForm: RegistrationForm = {
   teamName: '',
   member1Name: '',
   member1Email: '',
   member1Contact: '',
+  member1College: '',
+  member1Year: '',
+  member1Department: '',
   member1Linkedin: '',
   member1Github: '',
   member1PostLink: '',
   member2Name: '',
   member2Email: '',
   member2Contact: '',
+  member2College: '',
+  member2Year: '',
+  member2Department: '',
   member2Linkedin: '',
   member2Github: '',
   member2PostLink: '',
@@ -41,14 +56,12 @@ const Field = ({
   value,
   onChange,
   placeholder,
-  type = 'text',
 }: {
   label: string;
   name: keyof RegistrationForm;
   value: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
-  type?: string;
 }) => (
   <div>
     <label className="mb-2 block font-inter text-sm">{label}</label>
@@ -56,8 +69,7 @@ const Field = ({
       name={name}
       value={value}
       onChange={onChange}
-      type={type}
-      required
+      type="text"
       className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none transition-colors focus:border-primary"
       placeholder={placeholder}
     />
@@ -75,53 +87,102 @@ const Register = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const validate = () => {
-    if (form.teamName.trim().length < 3) {
-      return 'Team name must be at least 3 characters.';
+  const insertDirectToDb = async () => {
+    const baseTeamName = normalize(form.teamName) || `Team-${Date.now()}`;
+
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const teamName = attempt === 0 ? baseTeamName : `${baseTeamName}-${attempt + 1}`;
+      const { error: insertError } = await supabase.from('team_registrations').insert({
+        team_name: teamName,
+        member1_name: normalize(form.member1Name),
+        member1_email: normalize(form.member1Email),
+        member1_contact: normalize(form.member1Contact),
+        member1_college: normalize(form.member1College),
+        member1_year: normalize(form.member1Year),
+        member1_department: normalize(form.member1Department),
+        member1_linkedin: normalize(form.member1Linkedin),
+        member1_github: normalize(form.member1Github),
+        member1_post_link: normalize(form.member1PostLink),
+        member2_name: normalize(form.member2Name),
+        member2_email: normalize(form.member2Email),
+        member2_contact: normalize(form.member2Contact),
+        member2_college: normalize(form.member2College),
+        member2_year: normalize(form.member2Year),
+        member2_department: normalize(form.member2Department),
+        member2_linkedin: normalize(form.member2Linkedin),
+        member2_github: normalize(form.member2Github),
+        member2_post_link: normalize(form.member2PostLink),
+        contact_number: null,
+        organization: null,
+        skills: null,
+      } as never);
+
+      if (!insertError) {
+        return null;
+      }
+
+      if ((insertError as { code?: string }).code !== '23505') {
+        return insertError.message || 'Direct DB insert failed.';
+      }
     }
-    return null;
+
+    return 'Could not generate a unique team name. Please retry.';
   };
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
+
+    setSaving(true);
+    const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim();
+    const apiKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
+    const functionUrl = `${supabaseUrl}/functions/v1/submit-team-registration`;
+
+    if (!supabaseUrl || !apiKey) {
+      setSaving(false);
+      setError('Supabase configuration is missing in frontend environment.');
       return;
     }
 
-    setSaving(true);
-    const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-team-registration`;
-    const apiKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    let submittedViaApi = false;
+    let lastError: string | null = null;
 
     try {
-      const res = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: apiKey,
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(form),
-      });
+      try {
+        const res = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: apiKey,
+          },
+          body: JSON.stringify(form),
+        });
 
-      if (!res.ok) {
-        let message = `Registration failed (HTTP ${res.status}).`;
-        try {
-          const body = (await res.json()) as { error?: string };
-          if (body?.error) {
-            message = body.error;
+        if (res.ok) {
+          submittedViaApi = true;
+        } else {
+          let message = `Registration failed (HTTP ${res.status}).`;
+          try {
+            const body = (await res.json()) as { error?: string };
+            if (body?.error) {
+              message = body.error;
+            }
+          } catch {
+            // Ignore parse failures and use status-based message.
           }
-        } catch {
-          // Ignore parse failures and use status-based message.
+          lastError = message;
         }
-        setError(message);
-        return;
+      } catch {
+        lastError = 'Edge Function unavailable from this browser. Trying direct database save...';
       }
-    } catch {
-      setError('Request could not reach server. Please refresh and retry.');
-      return;
+
+      if (!submittedViaApi) {
+        const dbError = await insertDirectToDb();
+        if (dbError) {
+          setError(lastError ? `${lastError} ${dbError}` : dbError);
+          return;
+        }
+      }
     } finally {
       setSaving(false);
     }
@@ -156,7 +217,6 @@ const Register = () => {
                   name="teamName"
                   value={form.teamName}
                   onChange={onChange}
-                  required
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none transition-colors focus:border-primary"
                   placeholder="Enter team name"
                 />
@@ -167,11 +227,14 @@ const Register = () => {
                   <h2 className="font-orbitron text-xl font-semibold mb-5">Team Lead (Person 1)</h2>
                   <div className="space-y-4">
                     <Field label="Name" name="member1Name" value={form.member1Name} onChange={onChange} placeholder="Full name" />
-                    <Field label="Email" name="member1Email" value={form.member1Email} onChange={onChange} placeholder="name@email.com" type="email" />
+                    <Field label="Email" name="member1Email" value={form.member1Email} onChange={onChange} placeholder="name@email.com" />
                     <Field label="Contact" name="member1Contact" value={form.member1Contact} onChange={onChange} placeholder="+91..." />
-                    <Field label="LinkedIn" name="member1Linkedin" value={form.member1Linkedin} onChange={onChange} placeholder="https://linkedin.com/in/..." type="url" />
-                    <Field label="GitHub" name="member1Github" value={form.member1Github} onChange={onChange} placeholder="https://github.com/..." type="url" />
-                    <Field label="LinkedIn Post URL" name="member1PostLink" value={form.member1PostLink} onChange={onChange} placeholder="https://linkedin.com/posts/..." type="url" />
+                    <Field label="College" name="member1College" value={form.member1College} onChange={onChange} placeholder="College name" />
+                    <Field label="Year" name="member1Year" value={form.member1Year} onChange={onChange} placeholder="1st/2nd/3rd/4th" />
+                    <Field label="Department" name="member1Department" value={form.member1Department} onChange={onChange} placeholder="CSE/IT/ECE..." />
+                    <Field label="LinkedIn" name="member1Linkedin" value={form.member1Linkedin} onChange={onChange} placeholder="https://linkedin.com/in/..." />
+                    <Field label="GitHub" name="member1Github" value={form.member1Github} onChange={onChange} placeholder="https://github.com/..." />
+                    <Field label="LinkedIn Post URL" name="member1PostLink" value={form.member1PostLink} onChange={onChange} placeholder="https://linkedin.com/posts/..." />
                   </div>
                 </div>
 
@@ -179,11 +242,14 @@ const Register = () => {
                   <h2 className="font-orbitron text-xl font-semibold mb-5">Team Mate (Person 2)</h2>
                   <div className="space-y-4">
                     <Field label="Name" name="member2Name" value={form.member2Name} onChange={onChange} placeholder="Full name" />
-                    <Field label="Email" name="member2Email" value={form.member2Email} onChange={onChange} placeholder="name@email.com" type="email" />
+                    <Field label="Email" name="member2Email" value={form.member2Email} onChange={onChange} placeholder="name@email.com" />
                     <Field label="Contact" name="member2Contact" value={form.member2Contact} onChange={onChange} placeholder="+91..." />
-                    <Field label="LinkedIn" name="member2Linkedin" value={form.member2Linkedin} onChange={onChange} placeholder="https://linkedin.com/in/..." type="url" />
-                    <Field label="GitHub" name="member2Github" value={form.member2Github} onChange={onChange} placeholder="https://github.com/..." type="url" />
-                    <Field label="LinkedIn Post URL" name="member2PostLink" value={form.member2PostLink} onChange={onChange} placeholder="https://linkedin.com/posts/..." type="url" />
+                    <Field label="College" name="member2College" value={form.member2College} onChange={onChange} placeholder="College name" />
+                    <Field label="Year" name="member2Year" value={form.member2Year} onChange={onChange} placeholder="1st/2nd/3rd/4th" />
+                    <Field label="Department" name="member2Department" value={form.member2Department} onChange={onChange} placeholder="CSE/IT/ECE..." />
+                    <Field label="LinkedIn" name="member2Linkedin" value={form.member2Linkedin} onChange={onChange} placeholder="https://linkedin.com/in/..." />
+                    <Field label="GitHub" name="member2Github" value={form.member2Github} onChange={onChange} placeholder="https://github.com/..." />
+                    <Field label="LinkedIn Post URL" name="member2PostLink" value={form.member2PostLink} onChange={onChange} placeholder="https://linkedin.com/posts/..." />
                   </div>
                 </div>
               </div>
@@ -199,7 +265,7 @@ const Register = () => {
 
               <div className="rounded-lg border border-border bg-background/50 p-3 text-xs text-muted-foreground">
                 <p>
-                  Make sure Team Name is unique. If this team name already exists in records, submit will be rejected.
+                  Any submitted details will be stored. If team name already exists, a unique suffix will be added automatically.
                 </p>
               </div>
 
