@@ -120,45 +120,67 @@ const Register = () => {
 
     setSaving(true);
     const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim();
-    const apiKey = String(
-      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '',
-    ).trim();
-    const functionUrl = `${supabaseUrl}/functions/v1/submit-team-registration`;
+    const functionUrls: string[] = [];
+    if (supabaseUrl) {
+      functionUrls.push(`${supabaseUrl}/functions/v1/submit-team-registration`);
+      try {
+        const host = new URL(supabaseUrl).hostname;
+        const ref = host.split('.')[0];
+        if (ref) {
+          functionUrls.push(`https://${ref}.functions.supabase.co/submit-team-registration`);
+        }
+      } catch {
+        // Ignore malformed URL parsing and keep primary endpoint only.
+      }
+    }
 
-    if (!supabaseUrl || !apiKey) {
+    if (!supabaseUrl) {
       setSaving(false);
-      setError('Supabase configuration is missing in frontend environment (URL/Anon key).');
+      setError('Supabase configuration is missing in frontend environment (URL).');
       return;
     }
 
-    try {
-      const res = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: apiKey,
-        },
-        body: JSON.stringify(form),
-      });
+    let submittedOk = false;
+    let backendMessage: string | null = null;
 
-      if (!res.ok) {
-        let message = `Registration failed (HTTP ${res.status}).`;
+    try {
+      const payload = JSON.stringify(form);
+      for (const functionUrl of Array.from(new Set(functionUrls))) {
         try {
-          const body = (await res.json()) as { error?: string };
-          if (body?.error) {
-            message = body.error;
+          const res = await fetch(functionUrl, {
+            method: 'POST',
+            // Keep this a simple request to avoid browser preflight failures.
+            body: payload,
+          });
+
+          if (!res.ok) {
+            let message = `Registration failed (HTTP ${res.status}).`;
+            try {
+              const body = (await res.json()) as { error?: string };
+              if (body?.error) {
+                message = body.error;
+              }
+            } catch {
+              // Ignore parse failures and use status-based message.
+            }
+            backendMessage = message;
+            continue;
           }
-        } catch {
-          // Ignore parse failures and use status-based message.
+
+          submittedOk = true;
+          break;
+        } catch (attemptError) {
+          console.error('Registration attempt failed for endpoint', functionUrl, attemptError);
         }
-        setError(message);
-        return;
       }
     } catch {
-      setError('Registration service is unreachable. Please retry in a moment.');
-      return;
     } finally {
       setSaving(false);
+    }
+
+    if (!submittedOk) {
+      setError(backendMessage || 'Registration service is unreachable. Please retry in a moment.');
+      return;
     }
 
     setForm(initialForm);
